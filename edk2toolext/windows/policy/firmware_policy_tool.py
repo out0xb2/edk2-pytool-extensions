@@ -9,12 +9,30 @@
 
 from edk2toollib.windows.policy.firmware_policy import FirmwarePolicy
 import argparse
+from OpenSSL import crypto
+from cryptography.fernet import Fernet
 
 
 def PrintPolicy(filename: str) -> None:
     """Attempts to parse filename as a Windows Firmware Policy and print it"""
     try:
         with open(filename, 'rb') as f:
+            b = bytes(f.read())
+            try: 
+                p7 = crypto.load_pkcs7_data(crypto.FILETYPE_ASN1, b)
+            except:
+                p7 = None
+            if p7:
+                typeName = p7.get_type_name()
+                typeString = str(typeName)
+                if typeName != b'pkcs7-signedData':
+                    print("P7: Expected pkcs7-signedData, found " + typeString)
+                    return
+                print('P7: ' + typeString)
+                #crypto._lib
+                test = crypto._lib.OBJ_obj2nid( p7._pkcs7.d.sign.contents )
+            else:
+                f.seek(0)
             policy = FirmwarePolicy(fs=f)
             policy.Print()
 
